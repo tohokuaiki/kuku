@@ -112,7 +112,7 @@ export default {
         kotae_input: "", 
         keisan_index: 0,
         seikai: 0,
-        seikai_delay: 100,
+        seikai_delay: 700,
         kuku_kekka: 0,
         keisan_time: '',
         new_score: false,
@@ -124,8 +124,6 @@ export default {
       if (!this.results) {
           this.results = {};
       }
-      console.log(this.results); 
-      console.log('mounted'); 
   },
   methods: {
       initPrams() {
@@ -237,6 +235,9 @@ export default {
           }, this.seikai_delay);
       },
       restart99(){
+          if (timer.isRunning()){
+              timer.stop();
+          }
           this.initPrams();
           this.mode = 'settings';
       },
@@ -256,14 +257,9 @@ export default {
       },
       saveResult(time) {
           /* 記録を保存 */
-          console.log(this.results); 
           let key = this.dan.join(',');
-          console.log(key, typeof(this.results[key])); 
           if (typeof(this.results[key]) !== 'undefined'){
               let time_p = this.results[key];
-              console.log('============='); 
-              console.log(time_p); 
-              console.log('============='); 
               let time_p_int =
                 time_p.h * 60 * 60 * 1000 +
                 time_p.m * 60 * 1000 +
@@ -274,11 +270,9 @@ export default {
                 time.m * 60 * 1000 +
                 time.s * 1000 +
                 time.ms ;
-              console.log(time_p_int , time_int); 
               if (time_p_int > time_int){
                   time.new_score = true;
                   this.results[key] = time;
-                  console.log('aaaaaaaaaaaaaaaaaa'); 
               }
               else {
                   this.results[key].new_score = false;
@@ -287,11 +281,9 @@ export default {
           else {
               time.new_score = false;
               this.results[key] = time;
-              console.log('bbbbbbbbbbbbbbbbbbbbb'); 
           }
-          console.log(this.results[key]); 
           this.new_score = this.results[key].new_score;
-          this.$cookies.config(60 * 60 * 24 * 60,'/kuku99');
+          this.$cookies.config(60 * 60 * 24 * 120,'/kuku99'); /* 120日間 */
           this.$cookies.set(cookie_name, this.results);
       }
   }
