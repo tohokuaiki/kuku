@@ -1,5 +1,8 @@
 # 九九の練習をするWEBアプリです。
 
+## サンプル
+https://tohokuaiki.github.io/kuku/
+
 ## Project setup
 ```
 npm install
