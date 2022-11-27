@@ -55,18 +55,36 @@
       <div class="row mb-3 n-3buttons align-items-end">
          <div class="col-4"><button class="dentaku btn btn-outline-dark" @click="checkAnswer(0)">0</button></div>
          <div class="col-4"></div>
-         <div class="col-2 offset-2"><button class="dentaku btn btn-danger restart" @click="restart99">やめる。</button></div>
+         <div class="col-3 offset-1"><button class="dentaku btn btn-danger restart" @click="restart99">やめる。</button></div>
       </div>
     </div>
     <div  class="col-12 text-center result" v-show='mode=="result"'>
       <h2>けっかはっぴょう</h2>
-      <div class="col-10 offset-1 seikai-num">
-         <p>{{ keisan_index }} もん中、<br>{{ seikai }} もん正かい。</p>
-         <p>かかった時間は、{{ keisan_time }} です。</p>
+      <div class="row">
+        <div class="col-10 offset-1 seikai-num">
+           <p>{{ keisan_index }} もん中、{{ seikai }} もん正かい。</p>
+           <div v-if="keisan_index==seikai">
+             <p>かかった時間は、<span :class="{new_score: new_score}" >{{ keisan_time }} です。</span>
+               <span v-if="new_score" class="new_score">(新きろく！)</span>
+             </p>
+           </div>
+           <div v-else><p>ぜんぶ正かいするようにがんばろう。</p></div>
+        </div>
       </div>
-         
-      <div class="col-8 offset-2"><button class="dentaku btn btn-danger restart" @click="restart99">はじめにもどる。</button></div>
-    
+      <div class="row">
+        <div class="col-8 offset-2"><button class="dentaku btn btn-danger restart" @click="restart99">はじめにもどる。</button></div>
+      </div>
+      <div class="row">
+        <div class="col-8 offset-2 records">
+          <h3 class="mt-3">これまでのきろく</h3>
+          <table class="table"><tbody>
+            <tr v-for="(value, key) in results" :key="key">
+              <th class="text-right">{{ key }}のだん</th>
+              <td class="text-left"><span v-if="value.m">{{ value.m }} 分</span> {{ value.s }}.{{ value.ms }} &nbsp;びょう</td>
+            </tr>
+          </tbody></table>  
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -75,6 +93,8 @@ import { Timer } from 'timer-node';
 const timer = new Timer({
   label: 'test-timer'
 });
+
+const cookie_name = 'kuku99_result';
 
 export default {
   name: 'KukuPractice',
@@ -92,10 +112,20 @@ export default {
         kotae_input: "", 
         keisan_index: 0,
         seikai: 0,
-        seikai_delay: 700,
+        seikai_delay: 100,
         kuku_kekka: 0,
-        keisan_time: ''
+        keisan_time: '',
+        new_score: false,
+        results: {}
       }
+  },
+  mounted(){
+      this.results = this.$cookies.get(cookie_name);
+      if (!this.results) {
+          this.results = {};
+      }
+      console.log(this.results); 
+      console.log('mounted'); 
   },
   methods: {
       initPrams() {
@@ -112,6 +142,7 @@ export default {
           this.kakerareru = 0;
           this.kakeru = 0;
           this.keisan_time = '';
+          this.new_score = false;
       },
       keyNumber(n, m){
           return (n-1) * 3 +  m;
@@ -121,6 +152,7 @@ export default {
           let index = this.dan.indexOf(key);
           if (index < 0){
               this.dan.push(key);
+              this.dan.sort();
           }
       },
       checkActive(n, m){
@@ -166,6 +198,10 @@ export default {
           this.kotae_input = '';
       },
       async checkAnswer(key){
+          if (timer.isPaused()){
+              return ;
+          }
+          
           let numKey = "" + key;
           this.kotae_input += numKey;
           
@@ -213,7 +249,50 @@ export default {
                   this.keisan_time = time.m + '分';
               }
               this.keisan_time += time.s + '.'+ time.ms + 'びょう';
+              if (this.keisan_index == this.seikai){
+                  this.saveResult(time);
+              }
           }
+      },
+      saveResult(time) {
+          /* 記録を保存 */
+          console.log(this.results); 
+          let key = this.dan.join(',');
+          console.log(key, typeof(this.results[key])); 
+          if (typeof(this.results[key]) !== 'undefined'){
+              let time_p = this.results[key];
+              console.log('============='); 
+              console.log(time_p); 
+              console.log('============='); 
+              let time_p_int =
+                time_p.h * 60 * 60 * 1000 +
+                time_p.m * 60 * 1000 +
+                time_p.s * 1000 +
+                time_p.ms ;
+              let time_int =
+                time.h * 60 * 60 * 1000 +
+                time.m * 60 * 1000 +
+                time.s * 1000 +
+                time.ms ;
+              console.log(time_p_int , time_int); 
+              if (time_p_int > time_int){
+                  time.new_score = true;
+                  this.results[key] = time;
+                  console.log('aaaaaaaaaaaaaaaaaa'); 
+              }
+              else {
+                  this.results[key].new_score = false;
+              }
+          }
+          else {
+              time.new_score = false;
+              this.results[key] = time;
+              console.log('bbbbbbbbbbbbbbbbbbbbb'); 
+          }
+          console.log(this.results[key]); 
+          this.new_score = this.results[key].new_score;
+          this.$cookies.config(60 * 60 * 24 * 60,'/kuku99');
+          this.$cookies.set(cookie_name, this.results);
       }
   }
 }
@@ -257,11 +336,15 @@ h2{
 }
 .result .btn.restart{
     width: 100%;
-    font-size: 7vh;
+    font-size: 5vh;
 }
 .result .seikai-num p{
-    font-size: 6vh;
+    font-size: 5vh;
     
+}
+.result .new_score{
+    font-weight: bold;
+    color: #dc3545;
 }
 #mondai{
    position: relative;
